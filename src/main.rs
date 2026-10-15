@@ -1,6 +1,7 @@
 use std::{env, fs, process::ExitCode};
 
 mod ast;
+mod codegen;
 mod lexer;
 mod parser;
 
@@ -23,10 +24,24 @@ fn main() -> ExitCode {
 
     let mut parser = parser::Parser::new(&src);
 
-    match parser.parse() {
-        Ok(program) => println!("{program:#?}"),
+    let asm = match parser.parse() {
+        Ok(mut program) => {
+            program.normalize();
+            codegen::generate(&program)
+        }
         Err(err) => {
             eprintln!("Error parsing source file: {:?}", err);
+            return ExitCode::FAILURE;
+        }
+    };
+
+    let asm_path = src_path.replace(".bt", ".s");
+    match fs::write(&asm_path, asm) {
+        Ok(_) => {
+            println!("Assembly code written to {}", asm_path);
+        }
+        Err(err) => {
+            eprintln!("Error writing assembly file: {}", err);
             return ExitCode::FAILURE;
         }
     }

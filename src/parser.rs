@@ -62,6 +62,12 @@ impl<'src> Parser<'src> {
 
         self.expect(Token::CurlyClose)?;
 
+        self.skip_separators()?;
+
+        if self.current != Token::Eof {
+            return Err(ParseError::UnexpectedToken(self.current.clone()));
+        }
+
         Ok(Program { main })
     }
 
