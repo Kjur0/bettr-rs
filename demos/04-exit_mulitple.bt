@@ -1,0 +1,5 @@
+main {
+    exit 42
+    exit 67
+    exit 69
+}
