@@ -22,7 +22,13 @@ fn main() -> ExitCode {
         }
     };
 
-    let mut parser = parser::Parser::new(&src);
+    let mut parser = match parser::Parser::new(&src) {
+        Ok(parser) => parser,
+        Err(err) => {
+            eprintln!("Error initializing parser: {:?}", err);
+            return ExitCode::FAILURE;
+        }
+    };
 
     let asm = match parser.parse() {
         Ok(mut program) => {

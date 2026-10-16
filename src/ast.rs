@@ -1,23 +1,21 @@
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     Integer(i32),
+    Binary {
+        left: Box<Expression>,
+        operator: BinaryOperator,
+        right: Box<Expression>,
+    },
+}
+
+#[derive(Debug, PartialEq)]
+pub enum BinaryOperator {
+    Add,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
     Exit(Option<Expression>),
-}
-
-impl Statement {
-    pub fn exit_code(&self) -> Option<i32> {
-        match self {
-            Statement::Exit(Some(Expression::Integer(value))) => Some(*value),
-            Statement::Exit(None) => Some(0),
-            // future statements
-            #[allow(unreachable_patterns)]
-            _ => None,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq)]

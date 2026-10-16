@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Expression, Program, Statement},
+    ast::{BinaryOperator, Expression, Program, Statement},
     lexer::{LexError, Lexer, Token},
 };
 
@@ -17,11 +17,11 @@ pub enum ParseError {
 }
 
 impl<'src> Parser<'src> {
-    pub fn new(source: &'src str) -> Self {
+    pub fn new(source: &'src str) -> Result<Self, ParseError> {
         let mut lexer = Lexer::new(source);
-        let current = lexer.next_token().unwrap_or(Token::Eof);
+        let current = lexer.next_token().map_err(ParseError::Lex)?;
 
-        Self { lexer, current }
+        Ok(Self { lexer, current })
     }
 
     fn advance(&mut self) -> Result<Token, ParseError> {
@@ -86,29 +86,44 @@ impl<'src> Parser<'src> {
         Ok(())
     }
 
-    // for later
-    #[allow(dead_code)]
-    fn parse_expression(&mut self) -> Result<crate::ast::Expression, ParseError> {
-        match self.current {
+    fn parse_expression(&mut self) -> Result<Expression, ParseError> {
+        self.parse_addition()
+    }
+
+    fn parse_primary(&mut self) -> Result<Expression, ParseError> {
+        match &self.current {
             Token::Integer(value) => {
+                let expression = Expression::Integer(*value);
                 self.advance()?;
-                Ok(crate::ast::Expression::Integer(value))
+                Ok(expression)
             }
             _ => Err(ParseError::UnexpectedToken(self.current.clone())),
         }
     }
 
+    fn parse_addition(&mut self) -> Result<Expression, ParseError> {
+        let mut left = self.parse_primary()?;
+
+        while self.current == Token::Plus {
+            self.advance()?;
+            let right = self.parse_primary()?;
+
+            left = Expression::Binary {
+                left: Box::new(left),
+                operator: BinaryOperator::Add,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
     fn parse_exit(&mut self) -> Result<Statement, ParseError> {
         self.advance()?;
 
-        let value = match &self.current {
-            Token::Integer(value) => {
-                let expression = Expression::Integer(*value);
-                self.advance()?;
-                Some(expression)
-            }
-            Token::Newline | Token::Semi | Token::CurlyClose => None,
-            _ => return Err(ParseError::UnexpectedToken(self.current.clone())),
+        let value = match self.current {
+            Token::Newline | Token::Semi | Token::CurlyClose | Token::Eof => None,
+            _ => Some(self.parse_expression()?),
         };
 
         if self.current == Token::Newline || self.current == Token::Semi {
